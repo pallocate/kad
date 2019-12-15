@@ -1,0 +1,11 @@
+Integration
+   Integration to pen
+
+Authentication
+   Authentication is required on top of kad to build the f2f network
+
+Security
+   API, audit control flow, exceptions, validate inputs
+
+Coroutines
+   It would be better to rewrite the kad network using nonblocking coroutines (actors, streams etc.)
