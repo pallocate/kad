@@ -1,5 +1,6 @@
 package kad.dht
 
+import kotlinx.serialization.Serializable
 import pen.LogLevel.INFO
 import pen.LogLevel.WARN
 import pen.Loggable
@@ -8,6 +9,7 @@ import kad.StorageEntryMetadata
 import kad.NoStorageEntryMetadata
 import kad.node.KNodeId
 
+@Serializable
 class KContentManager : Loggable
 {
    val entries = HashMap<KNodeId, ArrayList<KStorageEntryMetadata>>()

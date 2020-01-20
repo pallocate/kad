@@ -6,16 +6,16 @@ import java.net.InetAddress
 import java.util.NoSuchElementException
 import java.util.Timer
 import java.util.TimerTask
-import com.beust.klaxon.Converter
+import kotlinx.serialization.Serializable
 import pen.Log
+import pen.reeadObject; import pen.writeObject
 import pen.LogLevel.INFO
 import pen.LogLevel.WARN
 import pen.LogLevel.ERROR
 import pen.Loggable
-import pen.Filer
-import pen.Filable
 import pen.createDir
 import pen.Constants
+import pen.Constants.JSON_EXTENSION
 import pen.Config
 import kad.Constants as KadConstants
 import kad.dht.KDHT
@@ -33,7 +33,8 @@ import kad.routing.KRoutingTable
 import kad.utils.KSerializableRoutingInfo
 
 /** Primary constructor. */
-class KKademliaNode () : Filable, Loggable
+@Serializable
+class KKademliaNode () : Loggable
 {
    companion object
    {
@@ -53,20 +54,20 @@ class KKademliaNode () : Filable, Loggable
          {
             /* Reads some basic info. */
             val dir = storageDir( ownerName ) + Constants.SLASH
-            val kadNode = Filer.read<KKademliaNode>( dir + KAD )
+            val kadNode = readObject<KKademliaNode>( {serializer()}, dir + KAD )
 
             if (kadNode is KKademliaNode)
             {
                /* Reads routing table info. */
-               val rtInfo = Filer.read<KSerializableRoutingInfo>( dir + ROUTING_TABLE )
+               val rtInfo = readObject<KRoutingTable>( {KRoutingTable.serializer()}, dir + ROUTING_TABLE + JSON_EXTENSION )
 
                /* Reads local node */
-               val node = Filer.read<KNode>( dir + NODE )
+               val node = readObject<KNode>( {KNode.serializer()}, dir + NODE + JSON_EXTENSION )
 
                /* Reads DHT */
-               val dht = Filer.read<KDHT>( dir + DHT )
+               val dht = readObject<KDHT>( {KDHT.serializer()}, dir + DHT + JSON_EXTENSION )
 
-               if (rtInfo is KSerializableRoutingInfo && node is KNode && dht is KDHT)
+               if (rtInfo is KRoutingTable && node is KNode && dht is KDHT)
                {
                   kadNode.initialize( node, rtInfo.toRoutingTable(), dht )
                   ret = kadNode
@@ -214,16 +215,16 @@ class KKademliaNode () : Filable, Loggable
       val dir = storageDir( ownerName ) + Constants.SLASH
 
       /* Store Basic  data. */
-      Filer.write( this, dir + KAD )
+      writeObject( this, dir + KAD + JSON_EXTENSION )
 
       /* Save the node state. */
-      Filer.write( node, dir + NODE )
+      writeObject( node, dir + NODE + JSON_EXTENSION )
 
       /* Save the routing table. */
-      Filer.write( KSerializableRoutingInfo( routingTable ), dir + ROUTING_TABLE )
+      writeObject( KSerializableRoutingInfo( routingTable ), dir + ROUTING_TABLE + JSON_EXTENSION )
 
       /* Save the DHT. */
-      Filer.write( dht, dir + DHT )
+      writeObject( dht, dir + DHT + JSON_EXTENSION )
    }
 
    private fun startRefreshing ()

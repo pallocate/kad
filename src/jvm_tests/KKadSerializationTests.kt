@@ -4,7 +4,7 @@ import java.net.InetAddress
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions
 import pen.Constants.SLASH
-import pen.Filer
+import pen.reeadObject; import pen.writeObject
 import kad.KKademliaNode
 import kad.dht.KContent
 import kad.dht.KGetParameter
@@ -29,10 +29,10 @@ class KKadSerializationTests
       kServiceNode.ownerName = OWNER
 
       /* Writing KKademliaNode. */
-      Filer.write( kServiceNode, outputFilename )
+      writeObject( kServiceNode, outputFilename )
 
       /* Reading KKademliaNode. */
-      val deserialized = Filer.read<KKademliaNode>( outputFilename )
+      val deserialized = readObject<KKademliaNode>( outputFilename )
 
       /* Testing. */
       if (deserialized is KKademliaNode)
@@ -49,10 +49,10 @@ class KKadSerializationTests
       val kNode = KNode( kNodeID, InetAddress.getLocalHost(), 49152 )
 
       /* Writing KNode. */
-      Filer.write( kNode, outputFilename )
+      writeObject( kNode, outputFilename )
 
       /* Reading KNode. */
-      val deserialized = Filer.read<KNode>( outputFilename )
+      val deserialized = readObject<KNode>( outputFilename )
 
       /* Tests */
       if (deserialized is KNode)
@@ -75,10 +75,10 @@ class KKadSerializationTests
       kRoutingTable.initialize( kNode )
 
       /* Writing KRoutingTable. */
-      Filer.write(KSerializableRoutingInfo( kRoutingTable ), outputFilename)
+      writeObject(KSerializableRoutingInfo( kRoutingTable ), outputFilename)
 
       /* Reading KRoutingTable. */
-      val deserialized = Filer.read<KSerializableRoutingInfo>( outputFilename )
+      val deserialized = readObject<KSerializableRoutingInfo>( outputFilename )
 
       /* Testing. */
       if (deserialized is KSerializableRoutingInfo)
@@ -98,10 +98,10 @@ class KKadSerializationTests
       kDHT.initialize( OWNER )
 
       /* Writing KDHT. */
-      Filer.write( kDHT, outputFilename )
+      writeObject( kDHT, outputFilename )
 
       /* Reading KDHT. */
-      val deserialized = Filer.read<KDHT>( outputFilename )
+      val deserialized = readObject<KDHT>( outputFilename )
 
       /* Testing. */
       if (deserialized is KDHT)
@@ -119,10 +119,10 @@ class KKadSerializationTests
       val kStorageEntry = KStorageEntry(KContent( OWNER, PAYLOAD ))
 
       /* Writing KContent. */
-      Filer.write( kStorageEntry, outputFilename )
+      writeObject( kStorageEntry, outputFilename )
 
       /* Reading KContent. */
-      val deserialized = Filer.read<KStorageEntry>( outputFilename )
+      val deserialized = readObject<KStorageEntry>( outputFilename )
 
       /* Testing. */
       if (deserialized is KStorageEntry)

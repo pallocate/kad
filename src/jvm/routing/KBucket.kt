@@ -3,10 +3,12 @@ package kad.routing
 import java.util.ArrayList
 import java.util.NoSuchElementException
 import java.util.TreeSet
+import kotlinx.serialization.Serializable
 import kad.Constants
 import kad.node.KNode
 
 /** A bucket in the Kademlia routing table */
+@Serializable
 class KBucket ()
 {
    /** Contacts stored in this routing table */

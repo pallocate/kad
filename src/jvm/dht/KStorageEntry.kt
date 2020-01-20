@@ -1,10 +1,10 @@
 package kad.dht
 
-import com.beust.klaxon.Converter
-import pen.Filable
+import kotlinx.serialization.Serializable
 import kad.StorageEntry
 
 /** A StorageEntry class that is used to store a content on the DHT */
+@Serializer
 class KStorageEntry () : StorageEntry, Filable
 {
    var content                                    = KContent()

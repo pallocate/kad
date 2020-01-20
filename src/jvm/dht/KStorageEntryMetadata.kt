@@ -1,10 +1,12 @@
 package kad.dht
 
 import java.util.Objects
+import kotlinx.serialization.Serializable
 import kad.StorageEntryMetadata
 import kad.node.KNodeId
 
 /** Keeps track of data for a KContent stored in the DHT, Used by the ContentManager */
+@Serializable
 class KStorageEntryMetadata () : StorageEntryMetadata
 {
    var key                                        = KNodeId()

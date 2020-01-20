@@ -2,12 +2,12 @@ package kad.dht
 
 import java.io.File
 import java.util.NoSuchElementException
+import kotlinx.serialization.Serializable
 import pen.LogLevel.WARN
 import pen.Loggable
 import pen.Config
 import pen.Constants.SLASH
-import pen.Filer
-import pen.Filable
+import pen.Constants.JSON_EXTENSION
 import kad.KKademliaNode
 import kad.StorageEntry
 import kad.NoStorageEntry
@@ -15,7 +15,8 @@ import kad.ContentNotFoundException
 import kad.node.KNodeId
 
 /** Distributed Hash Table implementation. */
-class KDHT () : Filable, Loggable
+@Serializable
+class KDHT () : Loggable
 {
    val contentManager = KContentManager()
    var ownerName = ""
@@ -53,8 +54,8 @@ class KDHT () : Filable, Loggable
       {
          val sEntry = contentManager.put( content.contentMetadata )
 
-         val name = contentStorageDir( content.contentMetadata.key ) + SLASH + sEntry.hashCode()
-         Filer.write( content, name )                                           // Write content to file
+         val name = contentStorageDir( content.contentMetadata.key ) + SLASH + sEntry.hashCode() + JSON_EXTENSION
+         writeObject( content, {serializer()}, name )                                           // Write content to file
 
          ret = true
       }
@@ -73,8 +74,8 @@ class KDHT () : Filable, Loggable
    {
       var ret : StorageEntry = NoStorageEntry()
 
-      val name = contentStorageDir( key ) + SLASH + hashCode
-      val readResult = Filer.read<KDHT>( name )
+      val name = contentStorageDir( key ) + SLASH + hashCode + JSON_EXTENSION
+      val readResult = readObject<KDHT>( {serializer()}, name )
 
       if (readResult is StorageEntry)
          ret = readResult

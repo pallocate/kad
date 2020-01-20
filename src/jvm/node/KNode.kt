@@ -1,12 +1,13 @@
 package kad.node
 
-import java.io.Serializable
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import kotlinx.serialization.Serializable
 import pen.Log
 import pen.Filable
 
 /** A Node in the Kademlia network - Contains basic node network information. */
+@Serializable
 class KNode () : Filable
 {
    var nodeId                                     = KNodeId()

@@ -9,6 +9,7 @@ import kad.node.KNode
 import kad.node.KNodeId
 
 /** A Kademlia routing table */
+@Serializable
 class KRoutingTable () : Loggable
 {
    /** The buckets in this routing table */

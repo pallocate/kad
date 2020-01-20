@@ -4,10 +4,12 @@ import java.math.BigInteger
 import java.util.Arrays
 import java.util.BitSet
 import java.util.Random
+import kotlinx.serialization.Serializable
 import pen.Log
 import pen.Utils
 import pen.toHex
 
+@Serializable
 class KNodeId ()
 {
    companion object

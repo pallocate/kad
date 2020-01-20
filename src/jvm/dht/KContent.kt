@@ -1,7 +1,9 @@
 package kad.dht
 
+import kotlinx.serialization.Serializable
 import kad.node.KNodeId
 
+@Serializable
 class KContent ()
 {
    var key                                        = KNodeId()
