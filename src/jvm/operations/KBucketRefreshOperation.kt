@@ -16,7 +16,6 @@ class KBucketRefreshOperation (private val server : KServer, private val node : 
    /** Each bucket need to be refreshed at every time interval t.
      * Find an identifier in each bucket's range, use it to look for nodes closest to this identifier
      * allowing the bucket to be refreshed.
-     *
      * Then Do a FindNodeOperation for each of the generated NodeIds,
      * This will find the K-Closest nodes to that ID, and update the necessary K-Bucket */
    @Synchronized

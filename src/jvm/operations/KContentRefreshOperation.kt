@@ -22,8 +22,7 @@ class KContentRefreshOperation (private val server : KServer, private val node :
 {
    /** For each content stored on this DHT, distribute it to the K closest nodes
      * Also delete the content if this node is no longer one of the K closest nodes
-     *
-     * We assume that our JKademliaRoutingTable is updated, and we can get the K closest nodes from that table */
+     * We assume that our KRoutingTable is updated, and we can get the K closest nodes from that table */
    @Throws( IOException::class )
    override fun execute ()
    {
@@ -34,20 +33,20 @@ class KContentRefreshOperation (private val server : KServer, private val node :
       val minRepublishTime = System.currentTimeMillis()/1000L - Constants.RESTORE_INTERVAL
 
       /* For each storage entry, distribute it */
-      for (e in entries)
+      for (entry in entries)
       {
          /* Check last update time of this entry and only distribute it if it has been last updated > 1 hour ago */
-         if (e.lastRepublished > minRepublishTime)
+         if (entry.lastRepublished > minRepublishTime)
             continue
 
          /* Set that this content is now republished */
-         e.updateLastRepublished()
+         entry.updateLastRepublished()
 
          /* Get the K closest nodes to this entries */
-         val closestNodes = routingTable.findClosest( e.key, Constants.K )
+         val closestNodes = routingTable.findClosest( entry.nodeId, Constants.K )
 
          /* Create the message */
-         val storageEntry = dht.get( e )
+         val storageEntry = dht.get( entry )
          if (storageEntry is KStorageEntry)
          {
             val msg = KStoreMessage( node, storageEntry )
@@ -64,7 +63,7 @@ class KContentRefreshOperation (private val server : KServer, private val node :
             try
             {
                if (!closestNodes.contains( node ))
-                  dht.remove( e )
+                  dht.remove( entry )
             }
             catch (e : Exception)
             {
@@ -76,5 +75,6 @@ class KContentRefreshOperation (private val server : KServer, private val node :
             log({ "KContentRefreshOperation(${node})- entry not found!"}, Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
       }
    }
-   override fun originName () = "KContentRefreshOperation"
+
+   override fun tag () = "KContentRefreshOperation"
 }

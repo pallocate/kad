@@ -2,9 +2,6 @@ package kad.tests
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.FileReader
-import java.io.FileWriter
-import java.net.InetAddress
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions
 import kad.dht.KGetParameter
@@ -13,7 +10,7 @@ import kad.dht.KStorageEntry
 import kad.node.KNode
 import kad.node.KNodeId
 import kad.messages.*
-import kad.utils.KMessageSerializer
+import kad.MessageSerializer
 
 class KMessagesTests
 {
@@ -27,12 +24,12 @@ class KMessagesTests
 
       /* Streaming message. */
       val outputStream = ByteArrayOutputStream()
-      KMessageSerializer.write( kSimpleMessage, outputStream )
+      MessageSerializer.writeMessage( kSimpleMessage, outputStream )
       val serialized = outputStream.toByteArray()
 
       /* Unstreaming message. */
       val inputStream = ByteArrayInputStream( serialized )
-      val deserialized = KMessageSerializer.read<KSimpleMessage>( inputStream )
+      val deserialized = MessageSerializer.readMessage( inputStream )
 
       /* Testing. */
       if (deserialized is KSimpleMessage)
@@ -44,42 +41,40 @@ class KMessagesTests
    @Test
    fun `Streaming KConnectMessage` ()
    {
-      val kConnectMessage = KConnectMessage( KNode(KNodeId( KEY ), InetAddress.getLocalHost(), 49152) )
+      val kNode = KNode()
+      val key = kNode.nodeId.key
+      val kConnectMessage = KConnectMessage( kNode )
 
       /* Streaming message. */
       val outputStream = ByteArrayOutputStream()
-      KMessageSerializer.write( kConnectMessage, outputStream )
+      MessageSerializer.writeMessage( kConnectMessage, outputStream )
       val serialized = outputStream.toByteArray()
 
       /* Unstreaming message. */
       val inputStream = ByteArrayInputStream( serialized )
-      val deserialized = KMessageSerializer.read<KConnectMessage>( inputStream )
+      val deserialized = MessageSerializer.readMessage( inputStream )
 
       /* Testing. */
-      if (deserialized is KConnectMessage)
-         Assertions.assertArrayEquals( KEY, deserialized.origin.nodeId.keyBytes )
-      else
-         Assertions.assertTrue( false )
+      Assertions.assertArrayEquals( key, (deserialized as KConnectMessage).origin.nodeId.key )
    }
 
    @Test
    fun `streaming KAcknowledgeMessage` ()
    {
-      val kAcknowledgeMessage = KAcknowledgeMessage( KNode(KNodeId( KEY ), InetAddress.getLocalHost(), 49152) )
+      val kNode = KNode()
+      val key = kNode.nodeId.key
+      val kAcknowledgeMessage = KAcknowledgeMessage( kNode )
 
       /* Streaming message. */
       val outputStream = ByteArrayOutputStream()
-      KMessageSerializer.write( kAcknowledgeMessage, outputStream )
+      MessageSerializer.writeMessage( kAcknowledgeMessage, outputStream )
       val serialized = outputStream.toByteArray()
 
       /* Unstreaming message. */
       val inputStream = ByteArrayInputStream( serialized )
-      val deserialized = KMessageSerializer.read<KAcknowledgeMessage>( inputStream )
+      val deserialized = MessageSerializer.readMessage( inputStream )
 
-      if (deserialized is KAcknowledgeMessage)
-         Assertions.assertArrayEquals( KEY, deserialized.origin.nodeId.keyBytes )
-      else
-         Assertions.assertTrue( false )
+      Assertions.assertArrayEquals( key, (deserialized as KAcknowledgeMessage).origin.nodeId.key )
    }
 
    @Test
@@ -89,41 +84,38 @@ class KMessagesTests
 
       /* Streaming message. */
       val outputStream = ByteArrayOutputStream()
-      KMessageSerializer.write( kFindNodeMessage, outputStream )
+      MessageSerializer.writeMessage( kFindNodeMessage, outputStream )
       val serialized = outputStream.toByteArray()
 
       /* Unstreaming message. */
       val inputStream = ByteArrayInputStream( serialized )
-      val deserialized = KMessageSerializer.read<KFindNodeMessage>( inputStream )
+      val deserialized = MessageSerializer.readMessage( inputStream )
 
       /* Testing. */
-      if (deserialized is KFindNodeMessage)
-         Assertions.assertArrayEquals( KEY, deserialized.lookupId.keyBytes )
-      else
-         Assertions.assertTrue( false )
+      Assertions.assertArrayEquals( KEY, (deserialized as KFindNodeMessage).lookupId.key )
    }
 
    @Test
    fun `Streaming KFindNodeReply` ()
    {
       val nodes = ArrayList<KNode>()
-      nodes.add( KNode(KNodeId( KEY ), InetAddress.getLocalHost(), 49152) )
+      val kNode = KNode()
+      val key = kNode.nodeId.key
+
+      nodes.add( kNode )
       val kFindNodeReply = KFindNodeReply( KNode(), nodes )
 
       /* Streaming message. */
       val outputStream = ByteArrayOutputStream()
-      KMessageSerializer.write( kFindNodeReply, outputStream )
+      MessageSerializer.writeMessage( kFindNodeReply, outputStream )
       val serialized = outputStream.toByteArray()
 
       /* Unstreaming message. */
       val inputStream = ByteArrayInputStream( serialized )
-      val deserialized = KMessageSerializer.read<KFindNodeReply>( inputStream )
+      val deserialized = MessageSerializer.readMessage( inputStream )
 
       /* Testing. */
-      if (deserialized is KFindNodeReply)
-         Assertions.assertArrayEquals( KEY, deserialized.nodes.first().nodeId.keyBytes )
-      else
-         Assertions.assertTrue( false )
+      Assertions.assertArrayEquals( key, (deserialized as KFindNodeReply).nodes.first().nodeId.key )
    }
 
    @Test
@@ -135,21 +127,16 @@ class KMessagesTests
 
       /* Streaming message. */
       val outputStream = ByteArrayOutputStream()
-      KMessageSerializer.write( kFindValueMessage, outputStream )
+      MessageSerializer.writeMessage( kFindValueMessage, outputStream )
       val serialized = outputStream.toByteArray()
 
       /* Unstreaming message. */
       val inputStream = ByteArrayInputStream( serialized )
-      val deserialized = KMessageSerializer.read<KFindValueMessage>( inputStream )
+      val deserialized = MessageSerializer.readMessage( inputStream )
 
       /* Testing. */
-      if (deserialized is KFindValueMessage)
-      {
-         Assertions.assertEquals( OWNER, deserialized.params.ownerName )
-         Assertions.assertEquals( TYPE, deserialized.params.type )
-      }
-      else
-         Assertions.assertTrue( false )
+      Assertions.assertEquals( OWNER, (deserialized as KFindValueMessage).params.ownerName )
+      Assertions.assertEquals( TYPE, (deserialized as KFindValueMessage).params.type )
    }
 
    @Test
@@ -160,17 +147,14 @@ class KMessagesTests
 
       /* Streaming message. */
       val outputStream = ByteArrayOutputStream()
-      KMessageSerializer.write( kStoreMessage, outputStream )
+      MessageSerializer.writeMessage( kStoreMessage, outputStream )
       val serialized = outputStream.toByteArray()
 
       /* Unstreaming message. */
       val inputStream = ByteArrayInputStream( serialized )
-      val deserialized = KMessageSerializer.read<KStoreMessage>( inputStream )
+      val deserialized = MessageSerializer.readMessage( inputStream )
 
       /* Testing. */
-      if (deserialized is KStoreMessage)
-         Assertions.assertEquals( OWNER, deserialized.payload.content.ownerName )
-      else
-         Assertions.assertTrue( false )
+      Assertions.assertEquals( OWNER, (deserialized as KStoreMessage).payload.content.ownerName )
    }
 }

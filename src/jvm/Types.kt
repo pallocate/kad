@@ -1,18 +1,6 @@
 package kad
 
 import java.io.IOException
-import com.beust.klaxon.Converter
-
-interface NodeMessageListener
-{
-   fun findMessageSent ()
-   fun findReplyReceived ()
-}
-class NoNodeMessageListener : NodeMessageListener
-{
-   override fun findMessageSent () {}
-   override fun findReplyReceived () {}
-}
 
 interface StorageEntry
 class NoStorageEntry : StorageEntry

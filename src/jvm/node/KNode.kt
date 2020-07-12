@@ -2,27 +2,19 @@ package kad.node
 
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import pen.Log
-import pen.Filable
 
-/** A Node in the Kademlia network - Contains basic node network information. */
+interface Node
+class NoNode : Node
+
+/** A Node in the Kademlia network - Contains basic node network information.
+  * @param address The IP address of this node. */
 @Serializable
-class KNode () : Filable
+class KNode (val nodeId : KNodeId = KNodeId(), val port : Int = 42283, val address : ByteArray = byteArrayOf(127, 0, 1, 1)) : Node // 49152-65535 are private ports
 {
-   var nodeId                                     = KNodeId()
-   var inetAddress                                = InetAddress.getLocalHost()
-   var port                                       = 0
-
-   constructor (nodeId : KNodeId, inetAddress : InetAddress, port : Int) : this()
-   {
-      this.nodeId = nodeId
-      this.inetAddress = inetAddress
-      this.port = port
-   }
-
-   /** Creates a SocketAddress for this node */
-   fun getSocketAddress () = InetSocketAddress( inetAddress, port )
+   fun getSocketAddress () = InetSocketAddress(InetAddress.getByAddress( address ), port)
 
    override fun equals (other : Any?) : Boolean
    {

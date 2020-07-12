@@ -21,8 +21,7 @@ import kad.routing.KRoutingTable
   * @param bootstrap Node to use to bootstrap the local node onto the network */
 class KConnectOperation (private val server : KServer, private val node : KNode, private val routingTable : KRoutingTable, private val dht : KDHT, private val otherNode : KNode) : Operation, Receiver, Loggable
 {
-   val MAX_CONNECT_ATTEMPTS = 5                                                 // Try 5 times to connect to a node
-
+   private val MAX_CONNECT_ATTEMPTS = 5                                         // Try 5 times to connect to a node
    private var error: Boolean = false
    private var attempts: Int = 0
 
@@ -53,7 +52,7 @@ class KConnectOperation (private val server : KServer, private val node : KNode,
             else
                break
          }
-         check( !error, {"no responce"} ) // If we still haven't received any responses by then, do a routing timeout */
+         check( !error, {"no responce"} )                                       // If we still haven't received any responses by then, do a routing timeout */
 
          // This code seems not to be reached:
 
@@ -96,5 +95,5 @@ class KConnectOperation (private val server : KServer, private val node : KNode,
          (this as Object).notify()                                              // We just exit, so notify all other threads that are possibly waiting
    }
 
-   override fun originName () = "KConnectOperation(${node})"
+   override fun tag () = "KConnectOperation(${node})"
 }

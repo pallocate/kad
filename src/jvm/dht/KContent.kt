@@ -6,7 +6,7 @@ import kad.node.KNodeId
 @Serializable
 class KContent ()
 {
-   var key                                        = KNodeId()
+   var nodeId                                     = KNodeId()
 
    var ownerName                                  = ""
    var timestamp                                  = System.currentTimeMillis()/1000L
@@ -18,16 +18,16 @@ class KContent ()
          updateTimestamp()
       }
 
-   constructor (key : KNodeId, ownerName : String) : this()
+   constructor (nodeId : KNodeId, ownerName : String) : this()
    {
-      this.key = key
+      this.nodeId = nodeId
       this.ownerName = ownerName
    }
 
    constructor (ownerName : String, value : String) : this( KNodeId(), ownerName )
    { this.value = value }
 
-   fun type () = "KContent"
+   fun type () = "Content"
    fun updateTimestamp ()
    { lastUpdated = System.currentTimeMillis()/1000L }
 }

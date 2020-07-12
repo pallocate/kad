@@ -6,12 +6,12 @@ import java.util.Comparator
 /** A Comparator to compare 2 keys to a given key */
 class KKeyComparator
 /** @param key The KNodeId relative to which the distance should be measured. */
-(key: KNodeId) : Comparator<KNode>
+(nodeId : KNodeId) : Comparator<KNode>
 {
-   private val key: BigInteger
+   private val key : BigInteger
 
    init
-   { this.key = key.getInt() }
+   { key = nodeId.getInt() }
 
    /** Compare two objects which must both be of type `KNode`
      * and determine which is closest to the identifier specified in the constructor.

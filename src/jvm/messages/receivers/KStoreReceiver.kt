@@ -5,6 +5,7 @@ import kad.KServer
 import kad.messages.Message
 import kad.dht.KDHT
 import kad.dht.KStorageEntry
+import kad.node.KNode
 import kad.messages.KStoreMessage
 import kad.routing.KRoutingTable
 
@@ -21,8 +22,7 @@ class KStoreReceiver (private val server : KServer, private val routingTable : K
          try
          {   /* KStoreMessage this KContent into the DHT */
             val content = message.payload
-            if (content is KStorageEntry)
-               dht.store( content )
+            dht.store( content )
          }
          catch (e: IOException)
          {println( "Unable to store received content; Message: " + e.message )}

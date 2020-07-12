@@ -9,18 +9,18 @@ import kad.node.KNodeId
 @Serializable
 class KStorageEntryMetadata () : StorageEntryMetadata
 {
-   var key                                        = KNodeId()
-   var ownerName                                  = ""
-   var type                                       = ""
-   var contentHash                                = 0
-   var lastUpdated                                = 0L
+   var nodeId                                          = KNodeId()
+   var ownerName                                       = ""
+   var type                                            = ""
+   var contentHash                                     = 0
+   var lastUpdated                                     = 0L
 
    /* This value is the last time this content was last updated from the network */
-   var lastRepublished                            = 0L
+   var lastRepublished                                 = 0L
 
    constructor (content : KContent) : this()
    {
-      key = content.key
+      nodeId = content.nodeId
       ownerName = content.ownerName
       type = content.type()
       contentHash = hashCode()
@@ -46,7 +46,7 @@ class KStorageEntryMetadata () : StorageEntryMetadata
          return false
 
       /* Check that key matches */
-      if ((!params.key.equals( key )))
+      if ((!params.nodeId.equals( nodeId )))
          return false
 
       return true
@@ -58,12 +58,12 @@ class KStorageEntryMetadata () : StorageEntryMetadata
    override fun hashCode () : Int
    {
       var hash = 3
-      hash = 23 * hash + Objects.hashCode( this.key )
+      hash = 23 * hash + Objects.hashCode( this.nodeId )
       hash = 23 * hash + Objects.hashCode( this.ownerName )
       hash = 23 * hash + Objects.hashCode( this.type )
 
       return hash
    }
 
-   override fun toString () ="[ StorageEntry : {Key : $key}{Owner : $ownerName}{Type : $type} ]"
+   override fun toString () ="entry: ${nodeId.shortName()}\nowner: $ownerName\ntype: ${type}\nlast updated: ${lastUpdated}"
 }

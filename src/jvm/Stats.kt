@@ -3,40 +3,53 @@ package kad
 import java.text.DecimalFormat
 
 /** Statistics. */
-object Stats
+interface Stats
 {
-   private var totalDataSent                      = 0L
-   private var totalDataReceived                  = 0L
-   private var bootstrapTime                      = 0L
-   private var totalRouteLength                   = 0L
-   private var numDataSent                        = 0L
-   private var numDataReceived                    = 0L
+   var findNodeSent : Int
+   var findReplyReceived : Int
+   var packetsSent : Int
+   var packetsReceived : Int
+   var bytesSent : Long
+   var bytesReceived : Long
 
+   fun contentLookup (time : Long, routeLength : Int, isSuccessful : Boolean)
+   fun setBootstrapTime (bootstrapTime : Long)
+}
+class NoStats : Stats
+{
+   override var findNodeSent = 0
+   override var findReplyReceived = 0
+   override var packetsSent = 0
+   override var packetsReceived = 0
+   override var bytesSent = 0L
+   override var bytesReceived = 0L
+   override fun contentLookup (time : Long, routeLength : Int, isSuccessful : Boolean) {}
+   override fun setBootstrapTime (bootstrapTime : Long) {}
+}
 
-   var numContentLookups : Int = 0
+class KStats () : Stats
+{
+   override var findNodeSent                           = 0
+   override var findReplyReceived                      = 0
+   private var totalRouteLength                        = 0L
+   override var packetsSent                            = 0
+   override var packetsReceived                        = 0
+   override var bytesSent                              = 0L
+   override var bytesReceived                          = 0L
+   private var bootstrapTime                           = 0L
+
+   var contentLookups : Int = 0
       private set
    var numFailedContentLookups : Int = 0
       private set
    var totalContentLookupTime : Long = 0
       private set
 
-   fun sentData (size : Long)
-   {
-      totalDataSent += size
-      numDataSent++
-   }
-
-   fun receivedData (size : Long)
-   {
-      totalDataReceived += size
-      numDataReceived++
-   }
-
-   fun addContentLookup (time : Long, routeLength : Int, isSuccessful : Boolean)
+   override fun contentLookup (time : Long, routeLength : Int, isSuccessful : Boolean)
    {
       if (isSuccessful)
       {
-         numContentLookups++
+         contentLookups++
          totalContentLookupTime += time
          totalRouteLength += routeLength.toLong()
       }
@@ -48,9 +61,9 @@ object Stats
    {
       var ret = 0.0
 
-      if (this.numContentLookups != 0)
+      if (this.contentLookups != 0)
       {
-         val avg = totalContentLookupTime.toDouble()/numContentLookups.toDouble()/1000000.0
+         val avg = totalContentLookupTime.toDouble()/contentLookups.toDouble()/1000000.0
          val df = DecimalFormat( "#.00" )
          ret = df.format( avg ).toDouble()
       }
@@ -61,31 +74,31 @@ object Stats
 
    fun averageContentLookupRouteLength () : Double
    {
-      if (numContentLookups == 0)
+      if (contentLookups == 0)
          return 0.0
 
-      val avg = totalRouteLength.toDouble()/numContentLookups.toDouble()
+      val avg = totalRouteLength.toDouble()/contentLookups.toDouble()
       val df = DecimalFormat( "#.00" )
 
       return df.format( avg ).toDouble()
    }
 
-   fun getTotalDataSent () = totalDataSent/1000L
-   fun getTotalDataReceived () = totalDataReceived/1000L
-   fun getBootstrapTime () = bootstrapTime/1000000L
-   fun setBootstrapTime (bootstrapTime : Long)
+   override fun setBootstrapTime (bootstrapTime : Long)
    { this.bootstrapTime = bootstrapTime }
+   fun getBootstrapTime () = bootstrapTime/1000000L
 
    override fun toString () : String
    {
-      val sb = StringBuilder( "  STATS\n\n" )
+      val sb = StringBuilder()
 
-      sb.append( "Bootstrap Time: $bootstrapTime\n\n" )
-      sb.append( "Data Sent: ($numDataSent) $totalDataSent bytes\n\n" )
-      sb.append( "Data Received: ($numDataReceived) $totalDataReceived bytes\n\n" )
-      sb.append( "Num Content Lookups: $numContentLookups\n\n")
-      sb.append( "Avg Content Lookup Time: ${averageContentLookupTime()}\n\n" )
-      sb.append( "Avg Content Lookup Route Lth: ${averageContentLookupRouteLength()}" )
+      sb.append( "bootstrap time: $bootstrapTime\n" )
+      sb.append( "sent/recieved: ${bytesSent}B/${bytesReceived}B\n" )
+      sb.append( "find nodes sent: ${findNodeSent}\n" )
+      sb.append( "find replies recieved: ${findReplyReceived}\n" )
+
+      sb.append( "content lookups: $contentLookups\n")
+      sb.append( " average time; ${averageContentLookupTime()}\n" )
+      sb.append( " average route length; ${averageContentLookupRouteLength()}" )
 
       return sb.toString()
    }

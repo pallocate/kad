@@ -5,7 +5,6 @@ import pen.PlaceHolder
 
 import pen.Config
 import kad.messages.Message
-import kad.messages.Codes
 
 /** A receiver waits for incoming messages and perform some action when the message is received */
 interface Receiver

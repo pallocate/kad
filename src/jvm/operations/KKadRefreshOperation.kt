@@ -1,7 +1,6 @@
 package kad.operations
 
 import kad.KServer
-import kad.KKademliaNode
 import kad.dht.KDHT
 import kad.node.KNode
 import kad.routing.KRoutingTable
@@ -11,10 +10,10 @@ class KKadRefreshOperation (private val server : KServer, private val node : KNo
 {
    override fun execute ()
    {
-      /* Run our BucketRefreshOperation to refresh buckets */
+      /** Run our BucketRefreshOperation to refresh buckets */
       KBucketRefreshOperation( server, node, routingTable, dht ).execute()
 
-      /* After buckets have been refreshed, we refresh content */
+      /** After buckets have been refreshed, we refresh content */
       KContentRefreshOperation( server, node, routingTable, dht ).execute()
    }
 }

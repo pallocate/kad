@@ -17,10 +17,8 @@ class KFindNodeReceiver (private val server : KServer, private val kNode : KNode
    {
       if (message is KFindNodeMessage)
       {
-         val origin = message.origin
-
          /* Update the local space by inserting the origin node. */
-         kRoutingTable.insert( origin )
+         kRoutingTable.insert( message.origin )
 
          /* Find nodes closest to the LookupId */
          val nodes = kRoutingTable.findClosest( message.lookupId, Constants.K )
@@ -28,10 +26,10 @@ class KFindNodeReceiver (private val server : KServer, private val kNode : KNode
          /* Respond to the KFindNodeMessage */
          val reply = KFindNodeReply( kNode, nodes )
 
-         if (this.server.isRunning)
+         if (server.isRunning)
          {
             /* Let the Server send the reply */
-            this.server.reply( origin, reply, conversationId )
+            server.reply( message.origin, reply, conversationId )
          }
       }
    }

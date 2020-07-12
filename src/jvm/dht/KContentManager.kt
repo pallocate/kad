@@ -18,21 +18,21 @@ class KContentManager : Loggable
 
    fun put (entry : KStorageEntryMetadata) : StorageEntryMetadata
    {
-      log("putting content [${entry.key.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ))
-      log({"content: {owner: ${entry.ownerName}}, {type: ${entry.type}}, {key: \"${entry.key}\"}"}, Config.trigger( "KAD_CONTENT_INFO" ))
+      log("putting content [${entry.nodeId.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ))
+      log({"content: {owner: ${entry.ownerName}}, {type: ${entry.type}}, {nodeId: \"${entry.nodeId}\"}"}, Config.trigger( "KAD_CONTENT_INFO" ))
       var ret : StorageEntryMetadata = NoStorageEntryMetadata()
 
-      if (!entries.containsKey( entry.key ))
+      if (!entries.containsKey( entry.nodeId ))
       {
-         entries.put( entry.key, ArrayList<KStorageEntryMetadata>() )
+         entries.put( entry.nodeId, ArrayList<KStorageEntryMetadata>() )
       }
 
       /* If this entry doesn't already exist, then we add it */
       if (contains( entry ))
-         log("content already exist [${entry.key.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ), INFO)
+         log("content already exist [${entry.nodeId.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ), INFO)
       else
       {
-         entries.get( entry.key )?.add( entry )
+         entries.get( entry.nodeId )?.add( entry )
          ret = entry
       }
 
@@ -50,10 +50,10 @@ class KContentManager : Loggable
    {
       var ret = false
 
-      if (entries.containsKey( kGetParameter.key) )
+      if (entries.containsKey( kGetParameter.nodeId) )
       {
          /* Content with this key exist, check if any match the rest of the search criteria */
-         for (e in entries.get( kGetParameter.key )!!)
+         for (e in entries.get( kGetParameter.nodeId )!!)
          {
             /* If any entry satisfies the given parameters, return true */
             if (e.satisfiesParameters( kGetParameter ))
@@ -67,15 +67,15 @@ class KContentManager : Loggable
    fun get (md : KStorageEntryMetadata) = get(KGetParameter( md ))
    fun get (kGetParameter : KGetParameter) : StorageEntryMetadata
    {
-      log("getting entry [${kGetParameter.key.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ))
-      log({"entry info: {owner: ${kGetParameter.ownerName}}, {type: ${kGetParameter.type}}, {key: \"${kGetParameter.key}\"}"}, Config.trigger( "KAD_CONTENT_INFO" ))
+      log("getting entry [${kGetParameter.nodeId.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ))
+      log({"entry info: {owner: ${kGetParameter.ownerName}}, {type: ${kGetParameter.type}}, {nodeId: \"${kGetParameter.nodeId}\"}"}, Config.trigger( "KAD_CONTENT_INFO" ))
       var ret : StorageEntryMetadata = NoStorageEntryMetadata();
 
 FUN@  {
-         if (entries.containsKey( kGetParameter.key ))
+         if (entries.containsKey( kGetParameter.nodeId ))
          {
             /* Content with this key exist, check if any match the rest of the search criteria */
-            for (entry in entries.get( kGetParameter.key )!!)
+            for (entry in entries.get( kGetParameter.nodeId )!!)
                /* If any entry satisfies the given parameters, return true */
                if (entry.satisfiesParameters( kGetParameter ))
                {
@@ -84,10 +84,10 @@ FUN@  {
                }
 
             /* If we got here, means we didn't find any entry */
-            log("entry not found! [${kGetParameter.key.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
+            log("entry not found! [${kGetParameter.nodeId.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
          }
          else
-            log("no entry found for key! \"${kGetParameter.key.shortName()}\"", Config.trigger( "KAD_CONTENT_PUT_GET" ), INFO)
+            log("no entry found for key! \"${kGetParameter.nodeId.shortName()}\"", Config.trigger( "KAD_CONTENT_PUT_GET" ), INFO)
       }
 
       return ret
@@ -108,35 +108,23 @@ FUN@  {
    fun remove (content : KContent) = remove(KStorageEntryMetadata( content ))
    fun remove (entry : KStorageEntryMetadata)
    {
-      log("removing entry [${entry.key.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ))
+      log("removing entry [${entry.nodeId.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ))
       if (contains( entry ))
-         entries.get( entry.key )?.remove( entry )
+         entries.get( entry.nodeId )?.remove( entry )
       else
-         log("remove entry failed! [${entry.key.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
+         log("remove entry failed! [${entry.nodeId.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
    }
-   override fun originName () = "KContentManager"
+   override fun tag () = "KContentManager"
 
    @Synchronized
    override fun toString () : String
    {
-      val sb = StringBuilder( "Stored Content: \n" )
-      var count = 0
+      val sb = StringBuilder()
 
-      for (es in entries.values)
-      {
-         if (entries.size < 1)
-            continue
+      for (entry in entries.values)
+         for (metaData in entry)
+            sb.append( metaData.toString() + "\n\n" )
 
-         for (e in es)
-         {
-            sb.append( ++count )
-            sb.append( ". " )
-            sb.append( e.toString() )
-            sb.append( "\n" )
-         }
-      }
-
-      sb.append( "\n" )
       return sb.toString()
    }
 }

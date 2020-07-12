@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 import pen.LogLevel.WARN
 import pen.Loggable
 import pen.Config
+import pen.serializeToFile
+import pen.deserializeFromFile
 import pen.Constants.SLASH
 import pen.Constants.JSON_EXTENSION
 import kad.KKademliaNode
@@ -24,15 +26,11 @@ class KDHT () : Loggable
    init
    { log("created", Config.trigger( "KAD_CREATE" )) }
 
-   fun initialize (name : String)
-   {
-      ownerName = name
-      log("initializing", Config.trigger( "KAD_INITIALIZE" ))
-   }
+   fun initialize () = log("initializing", Config.trigger( "KAD_INITIALIZE" ))
 
    fun store (content : KStorageEntry) : Boolean
    {
-      log("adding content [${content.contentMetadata.key.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
+      log("adding content [${content.contentMetadata.nodeId.shortName()}]", Config.trigger( "KAD_CONTENT_PUT_GET" ))
       var ret : Boolean
 
       if (contentManager.contains( content.contentMetadata ))
@@ -54,14 +52,14 @@ class KDHT () : Loggable
       {
          val sEntry = contentManager.put( content.contentMetadata )
 
-         val name = contentStorageDir( content.contentMetadata.key ) + SLASH + sEntry.hashCode() + JSON_EXTENSION
-         writeObject( content, {serializer()}, name )                                           // Write content to file
+         val filename = contentStorageDir( content.contentMetadata.nodeId ) + SLASH + sEntry.hashCode() + JSON_EXTENSION
+         serializeToFile<KStorageEntry>( content, filename, KStorageEntry.serializer() )                                           // Write content to file
 
          ret = true
       }
       catch (e: Exception)
       {
-         log("adding content failed! [${content.contentMetadata.key.shortName()}], ${e.message}", Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
+         log("adding content failed! [${content.contentMetadata.nodeId.shortName()}], ${e.message}", Config.trigger( "KAD_CONTENT_PUT_GET" ), WARN)
          ret = false
       }
 
@@ -70,12 +68,12 @@ class KDHT () : Loggable
 
    fun store (content : KContent) = store(KStorageEntry( content ))
 
-   fun retrieve (key : KNodeId, hashCode : Int) : StorageEntry
+   fun retrieve (nodeId : KNodeId, hashCode : Int) : StorageEntry
    {
       var ret : StorageEntry = NoStorageEntry()
 
-      val name = contentStorageDir( key ) + SLASH + hashCode + JSON_EXTENSION
-      val readResult = readObject<KDHT>( {serializer()}, name )
+      val filename = contentStorageDir( nodeId ) + SLASH + hashCode + JSON_EXTENSION
+      val readResult = deserializeFromFile<KStorageEntry>( filename, KStorageEntry.serializer() )
 
       if (readResult is StorageEntry)
          ret = readResult
@@ -89,7 +87,7 @@ class KDHT () : Loggable
    {
       var ret : StorageEntry = NoStorageEntry()
 
-      val storageEntry = retrieve( entry.key, entry.hashCode() )
+      val storageEntry = retrieve( entry.nodeId, entry.hashCode() )
       if (storageEntry is KStorageEntry)
          ret = storageEntry
 
@@ -104,7 +102,7 @@ class KDHT () : Loggable
       val meta = contentManager.get( param )
       if (meta is KStorageEntryMetadata)
       {
-         val storageEntry = retrieve( meta.key, meta.hashCode() )
+         val storageEntry = retrieve( meta.nodeId, meta.hashCode() )
          if (storageEntry is KStorageEntry)
             ret = storageEntry
       }
@@ -117,7 +115,7 @@ class KDHT () : Loggable
 
    fun remove (entry : KStorageEntryMetadata)
    {
-      val folder = contentStorageDir( entry.key )
+      val folder = contentStorageDir( entry.nodeId )
       val file = File(folder + SLASH + entry.hashCode() + ".json" )
 
       contentManager.remove( entry )
@@ -138,7 +136,7 @@ class KDHT () : Loggable
          contentManager.put( e )
    }
 
-   override fun originName () = "KDHT(${ownerName})"
+   override fun tag () = "KDHT(${ownerName})"
 
    @Synchronized
    override fun toString () = contentManager.toString()

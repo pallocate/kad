@@ -2,7 +2,6 @@ package kad.routing
 
 import java.util.ArrayList
 import java.util.NoSuchElementException
-import java.util.TreeSet
 import kotlinx.serialization.Serializable
 import kad.Constants
 import kad.node.KNode
@@ -12,10 +11,11 @@ import kad.node.KNode
 class KBucket ()
 {
    /** Contacts stored in this routing table */
-   val contacts                                   = TreeSet<KContact>()
+   val contacts                                   = HashSet<KContact>()
 
    /** A set of last seen contacts that can replace any current contact that is unresponsive */
-   private val replacementCache                   = TreeSet<KContact>()
+   private val replacementCache                   = HashSet<KContact>()
+
    /** How deep is this bucket in the Routing Table */
    private var depth                              = 0
 
@@ -81,16 +81,17 @@ class KBucket ()
    }
 
    @Synchronized
-   fun containsContact (contact : KContact) : Boolean
-   {
-      return contacts.contains( contact )
-   }
+   fun removeNode (node: KNode) = removeContact(KContact( node ))
 
    @Synchronized
-   fun containsNode (node : KNode) = containsContact(KContact( node ))
+   fun numContacts () = contacts.size
 
    @Synchronized
-   fun removeContact (contact : KContact) : Boolean
+   fun containsContact (contact : KContact) = contacts.contains( contact )
+//   @Synchronized fun containsNode (node : KNode) = containsContact(KContact( node ))
+
+   @Synchronized
+   private fun removeContact (contact : KContact) : Boolean
    {
       /* If the contact does not exist, then we failed to remove it */
       if (!contacts.contains( contact ))
@@ -136,12 +137,6 @@ class KBucket ()
       throw NoSuchElementException( "Node does not exist in the replacement cache." )
    }
 
-   @Synchronized
-   fun removeNode (node: KNode) = removeContact(KContact( node ))
-
-   @Synchronized
-   fun numContacts () = contacts.size
-
    /** When the bucket is filled, we keep extra contacts in the replacement cache. */
    @Synchronized
    private fun insertIntoReplacementCache (contact : KContact)
@@ -184,13 +179,12 @@ class KBucket ()
    @Synchronized
    override fun toString () : String
    {
-      val sb = StringBuilder( "Bucket at depth: $depth\n" )
+      val sb = StringBuilder( "Bucket at depth: ${depth}\n" )
 
-      sb.append("\n  NODES\n")
-      for (n in contacts)
+      for (contact in contacts)
       {
-         sb.append( "KNode: ${n.node.nodeId.toString()}" )
-         sb.append( " (stale: ${n.staleCount})\n" )
+         sb.append( " contact; ${contact.node.nodeId.shortName()}" )
+         sb.append( " (${contact.staleCount} stale)\n" )
       }
       return sb.toString()
    }

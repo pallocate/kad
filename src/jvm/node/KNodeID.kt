@@ -4,44 +4,44 @@ import java.math.BigInteger
 import java.util.Arrays
 import java.util.BitSet
 import java.util.Random
+import kotlinx.serialization.Transient
 import kotlinx.serialization.Serializable
-import pen.Log
 import pen.Utils
 import pen.toHex
+import pen.ByteArraySerialiser
 
 @Serializable
-class KNodeId ()
+class KNodeId (@Serializable( with = ByteArraySerialiser::class )
+               val key : ByteArray)
 {
    companion object
    {
       const val ID_SIZE = 160
-      const val KEY_BYTES_SIZE = ID_SIZE/8
+      const val KEY_SIZE = ID_SIZE/8
+
+      fun randomKey () : ByteArray
+      {
+         val ret = ByteArray( KEY_SIZE )
+         Random().nextBytes( ret )
+         return ret
+      }
    }
 
-   var keyBytes = ByteArray( KEY_BYTES_SIZE )
+   private val sName by lazy {Utils.shortName( key )}
 
-   private val sName by lazy {Utils.shortName( keyBytes )}
-
-   init
-   { Random().nextBytes( keyBytes ) }
-
-   constructor (id : ByteArray) : this()
-   {
-      if (id.size == KEY_BYTES_SIZE)
-         keyBytes = id
-   }
+   constructor () : this( randomKey() ) {}
 
    /** Construct the KNodeId from a string. */
    constructor (string : String) : this( string.toByteArray() ) {}
 
    /** @param other The KNodeId to compare to this KNodeId. */
-   override fun equals (other : Any?) = if (other != null && other is KNodeId)
+   override fun equals (other : Any?) = if (other is KNodeId)
    (hashCode() == other.hashCode()) else false
 
    override fun hashCode () : Int
    {
       var hash = 7
-      hash = 83*hash + Arrays.hashCode( this.keyBytes )
+      hash = 83*hash + Arrays.hashCode( this.key )
       return hash
    }
 
@@ -49,13 +49,13 @@ class KNodeId ()
      * @return The distance of this KNodeId from the given KNodeId */
    fun xor (kNodeId : KNodeId) : KNodeId
    {
-      val result = ByteArray( KEY_BYTES_SIZE )
-      val nidBytes = kNodeId.keyBytes
+      val result = ByteArray( KEY_SIZE )
+      val nidBytes = kNodeId.key
 
       try
       {
-         for (i in 0 until KEY_BYTES_SIZE)
-            result[i] = (keyBytes[i].toInt() xor nidBytes[i].toInt()).toByte()
+         for (i in 0 until KEY_SIZE)
+            result[i] = (key[i].toInt() xor nidBytes[i].toInt()).toByte()
       }
       catch (e : Exception)
       { e.printStackTrace() }
@@ -70,7 +70,7 @@ class KNodeId ()
      * @return KNodeId The newly generated KNodeId */
    fun generateNodeIdByDistance (distance : Int) : KNodeId
    {
-      val result = ByteArray( KEY_BYTES_SIZE )
+      val result = ByteArray( KEY_SIZE )
 
       /* Since distance = ID_SIZE - prefixLength, we need to fill that amount with 0's */
       val numByteZeroes = (ID_SIZE - distance)/8
@@ -104,7 +104,7 @@ class KNodeId ()
    {
       var prefixLength = 0
 
-      for (b in keyBytes)
+      for (b in key)
       {
          val byte = b.toInt()
          if (byte == 0)
@@ -119,7 +119,7 @@ class KNodeId ()
                if (a)
                   count++
                else
-                  break   // Reset the count if we encounter a non-zero number
+                  break                                                         // Reset the count if we encounter a non-zero number
             }
 
             /* Add the count of MSB 0s to the prefix length */
@@ -142,9 +142,8 @@ class KNodeId ()
       return ID_SIZE - this.xor( to ).getFirstSetBitIndex()
    }
 
-   //asBigInteger()
-   fun getInt () = BigInteger(1, keyBytes)
+   fun getInt () = BigInteger(1, key)
 
    fun shortName() = sName
-   override fun toString () = keyBytes.toHex()
+   override fun toString () = key.toHex()
 }

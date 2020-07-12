@@ -11,17 +11,16 @@ import kad.messages.KStoreMessage
 import kad.node.KNode
 import kad.routing.KRoutingTable
 
-/** Operation that stores a DHT KContent onto the K closest nodes to the content Key */
-class KStoreOperation
-/** @param storageEntry The content to be stored on the DHT
+/** Operation that stores a DHT KContent onto the K closest nodes to the content Key
+  * @param storageEntry The content to be stored on the DHT
   * @param dht The local DHT */
-(private val server : KServer, private val node : KNode, private val routingTable : KRoutingTable, private val dht : KDHT, private val storageEntry : KStorageEntry) : Operation
+class KStoreOperation (private val server : KServer, private val node : KNode, private val routingTable : KRoutingTable, private val dht : KDHT, private val storageEntry : KStorageEntry) : Operation
 {
    @Synchronized
    override fun execute ()
    {
       /* Get the nodes on which we need to store the content */
-      val kFindNodeOperation = KFindNodeOperation( server, node, routingTable, storageEntry.contentMetadata.key )
+      val kFindNodeOperation = KFindNodeOperation( server, node, routingTable, storageEntry.contentMetadata.nodeId )
       kFindNodeOperation.execute()
       val nodes = kFindNodeOperation.getClosestNodes()
 

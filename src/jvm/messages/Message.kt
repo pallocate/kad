@@ -1,12 +1,9 @@
 package kad.messages
 
-import pen.Log
+import kotlinx.serialization.Polymorphic
+import kotlinx.serialization.Serializable
 
-interface Message
-{
-   fun code () : Byte
-}
-class NoMessage : Message
-{
-   override fun code () = 0x00.toByte()
-}
+@Polymorphic
+@Serializable
+abstract class Message
+class NoMessage : Message()

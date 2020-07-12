@@ -2,25 +2,30 @@ package kad.messages.receivers
 
 import pen.Config
 import kad.KKademliaNode
-import kad.messages.Codes
+import kad.messages.*
 
-object ReceiverFactory
+interface ReceiverFactory
+{ fun createReceiver (message : Message) : Receiver }
+class NoReceiverFactory : ReceiverFactory
+{ override fun createReceiver (message : Message) = NoReceiver() }
+
+class KReceiverFactory (var localNode : KKademliaNode) : ReceiverFactory
 {
-   fun createReceiver (code : Byte, localNode : KKademliaNode) : Receiver
+   override fun createReceiver (message : Message) : Receiver
    {
       var ret : Receiver = NoReceiver()
 
-      val server = localNode.getServer()
+      val server = localNode.server
       val node = localNode.getNode()
       val routingTable = localNode.getRoutingTable()
       val dht = localNode.getDHT()
 
-      ret = when (code)
+      ret = when (message)
       {
-         Codes.CONNECT                    -> KConnectReceiver( server, node, routingTable )
-         Codes.FIND_VALUE                 -> KFindValueReceiver( server, node, routingTable, dht )
-         Codes.FIND_NODE                  -> KFindNodeReceiver( server, node, routingTable )
-         Codes.STORE                      -> KStoreReceiver( server, routingTable, dht )
+         is KConnectMessage               -> KConnectReceiver( server, node, routingTable )
+         is KFindValueMessage             -> KFindValueReceiver( server, node, routingTable, dht )
+         is KFindNodeMessage              -> KFindNodeReceiver( server, node, routingTable )
+         is KStoreMessage                 -> KStoreReceiver( server, routingTable, dht )
          else                             -> KSimpleReceiver()
       }
 

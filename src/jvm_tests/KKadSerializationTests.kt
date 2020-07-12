@@ -4,7 +4,8 @@ import java.net.InetAddress
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions
 import pen.Constants.SLASH
-import pen.reeadObject; import pen.writeObject
+import pen.serializeToFile
+import pen.deserializeFromFile
 import kad.KKademliaNode
 import kad.dht.KContent
 import kad.dht.KGetParameter
@@ -13,56 +14,29 @@ import kad.dht.KDHT
 import kad.node.KNode
 import kad.node.KNodeId
 import kad.routing.KRoutingTable
-import kad.utils.KSerializableRoutingInfo
 
 class KKadSerializationTests
 {
    val OWNER = "Larsen"
    val outputFilename = "dist${SLASH}test.out"
-   val KEY = ByteArray(20, { 0xFF.toByte() })
-
-   @Test
-   fun `Serializing KKademliaNode` ()
-   {
-      /* Creating KKademliaNode. */
-      val kServiceNode = KKademliaNode()
-      kServiceNode.ownerName = OWNER
-
-      /* Writing KKademliaNode. */
-      writeObject( kServiceNode, outputFilename )
-
-      /* Reading KKademliaNode. */
-      val deserialized = readObject<KKademliaNode>( outputFilename )
-
-      /* Testing. */
-      if (deserialized is KKademliaNode)
-         Assertions.assertEquals( OWNER, deserialized.ownerName )
-      else
-         Assertions.assertTrue( false )
-   }
+   val ADDRESS = byteArrayOf( 1.toByte(), 1.toByte(), 1.toByte(), 1.toByte() )
 
    @Test
    fun `Serializing KNode` ()
    {
       /* Creating a KNode. */
-      val kNodeID = KNodeId( KEY )
-      val kNode = KNode( kNodeID, InetAddress.getLocalHost(), 49152 )
+      val kNode = KNode(KNodeId( ADDRESS ))
 
       /* Writing KNode. */
-      writeObject( kNode, outputFilename )
+      serializeToFile( kNode, outputFilename, KNode.serializer() )
 
       /* Reading KNode. */
-      val deserialized = readObject<KNode>( outputFilename )
+      val deserialized = deserializeFromFile<KNode>( outputFilename, KNode.serializer() )
 
       /* Tests */
-      if (deserialized is KNode)
-      {
-         Assertions.assertArrayEquals( KEY, deserialized.nodeId.keyBytes )
-         Assertions.assertEquals( kNode.inetAddress.getHostAddress(), deserialized.inetAddress.getHostAddress() )
-         Assertions.assertEquals( kNode.port, deserialized.port )
+      deserialized?.also {
+         Assertions.assertEquals( ADDRESS, it.address )
       }
-      else
-         Assertions.assertTrue( false )
    }
 
    @Test
@@ -71,23 +45,20 @@ class KKadSerializationTests
       /* Creating KRoutingTable. */
       var kRoutingTable = KRoutingTable()
       val kNode = KNode()
-      kNode.nodeId = KNodeId( KEY )
+      val key = kNode.nodeId.key
+
       kRoutingTable.initialize( kNode )
 
       /* Writing KRoutingTable. */
-      writeObject(KSerializableRoutingInfo( kRoutingTable ), outputFilename)
+      serializeToFile( kRoutingTable, outputFilename, KRoutingTable.serializer() )
 
       /* Reading KRoutingTable. */
-      val deserialized = readObject<KSerializableRoutingInfo>( outputFilename )
+      val deserialized = deserializeFromFile<KRoutingTable>( outputFilename, KRoutingTable.serializer() )
 
       /* Testing. */
-      if (deserialized is KSerializableRoutingInfo)
-      {
-         kRoutingTable = deserialized.toRoutingTable()
-         Assertions.assertArrayEquals( KEY, kRoutingTable.node.nodeId.keyBytes )
+      deserialized?.also {
+         Assertions.assertArrayEquals( key, it.node.nodeId.key )
       }
-      else
-         Assertions.assertTrue( false )
    }
 
    @Test
@@ -95,19 +66,17 @@ class KKadSerializationTests
    {
       /* Creating KDHT. */
       val kDHT = KDHT()
-      kDHT.initialize( OWNER )
 
       /* Writing KDHT. */
-      writeObject( kDHT, outputFilename )
+      serializeToFile( kDHT, outputFilename, KDHT.serializer() )
 
       /* Reading KDHT. */
-      val deserialized = readObject<KDHT>( outputFilename )
+      val deserialized = deserializeFromFile<KDHT>( outputFilename, KDHT.serializer() )
 
       /* Testing. */
-      if (deserialized is KDHT)
-         Assertions.assertEquals( OWNER, deserialized.ownerName )
-      else
-         Assertions.assertTrue( false )
+      deserialized?.also {
+         Assertions.assertEquals( OWNER, it.ownerName )
+      }
    }
 
    @Test
@@ -119,18 +88,15 @@ class KKadSerializationTests
       val kStorageEntry = KStorageEntry(KContent( OWNER, PAYLOAD ))
 
       /* Writing KContent. */
-      writeObject( kStorageEntry, outputFilename )
+      serializeToFile( kStorageEntry, outputFilename, KStorageEntry.serializer() )
 
       /* Reading KContent. */
-      val deserialized = readObject<KStorageEntry>( outputFilename )
+      val deserialized = deserializeFromFile<KStorageEntry>( outputFilename, KStorageEntry.serializer() )
 
       /* Testing. */
-      if (deserialized is KStorageEntry)
-      {
+      deserialized?.also {
          Assertions.assertEquals( OWNER, deserialized.content.ownerName )
          Assertions.assertEquals( PAYLOAD, deserialized.content.value )
       }
-      else
-         Assertions.assertTrue( false )
    }
 }

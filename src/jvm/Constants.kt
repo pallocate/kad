@@ -1,8 +1,9 @@
 package kad
 
-   /* Networking constants */
+/* Networking constants */
 object Constants
 {
+   val USER_HOME                                  = System.getProperty( "user.home" )
    val IS_TESTING                                 = true                        // Affects the servers simulated latency
    const val RESTORE_INTERVAL                     = (60*1000).toLong()          // (milliseconds)
    const val RESPONCE_TIMEOUT                     = 2000L

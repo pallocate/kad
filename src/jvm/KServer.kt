@@ -11,50 +11,55 @@ import java.net.SocketException
 import java.util.Random
 import java.util.Timer
 import java.util.TimerTask
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import pen.LogLevel.INFO
 import pen.LogLevel.WARN
 import pen.LogLevel.ERROR
 import pen.Loggable
-import kad.messages.MessageFactory
 import kad.messages.Message
 import pen.Config
-import kad.NodeMessageListener
-import kad.NoNodeMessageListener
-import kad.messages.Codes
 import kad.messages.KFindNodeMessage
 import kad.messages.KFindNodeReply
 import kad.messages.receivers.ReceiverFactory
+import kad.messages.receivers.KReceiverFactory
+import kad.messages.receivers.NoReceiverFactory
 import kad.messages.receivers.Receiver
 import kad.messages.receivers.NoReceiver
 import kad.node.KNode
-import kad.utils.KMessageSerializer
 
 /** The server that handles sending and receiving messages between nodes on the Kad Network.
      * @param port The port to listen on
      * @param receiverFactory Factory used to create receivers
      * @param node Local node on which this server runs on
      * @param stats A stats to manage the server statistics */
+@Serializable
 class KServer () : Loggable
 {
    /** Maximum size of a Datagram Packet */
    private val DATAGRAM_BUFFER_SIZE = 64*1024                                   // 64KB
 
-   private val tasks = HashMap<Int, TimerTask>()                                // Keep track of scheduled tasks
    private val receivers = HashMap<Int, Receiver>()
+   @Transient
+   private val tasks = HashMap<Int, TimerTask>()                                // Keep track of scheduled tasks
+   @Transient
    private val timer = Timer( true )                                            // Schedule future tasks
+   @Transient
    private var socket : DatagramSocket? = null
 
+   @Transient
+   var stats = KStats()
+   private var receiverFactory : ReceiverFactory = NoReceiverFactory()
+
    var isRunning : Boolean = false
-   var localNode : KKademliaNode? = null
-   var nodeMessageListener : NodeMessageListener = NoNodeMessageListener()
 
    init
    { log( "created", Config.trigger( "KAD_CREATE" ), INFO)}
 
-   fun initialize (localNode : KKademliaNode, port : Int)
+   fun initialize (receiverFactory : KReceiverFactory, port : Int)
    {
-      this.localNode = localNode
       log("initializing", Config.trigger( "KAD_INITIALIZE" ))
+      this.receiverFactory = receiverFactory
 
       try
       {socket = DatagramSocket( port )}
@@ -113,8 +118,7 @@ class KServer () : Loggable
          {
             /* Setting up the message. */
             it.writeInt( conversationID )
-            baus.write( message.code().toInt() )
-            KMessageSerializer.write( message, baus )
+            MessageSerializer.writeMessage( message, baus )
             val msg = baus.toByteArray()
 
             if (DATAGRAM_BUFFER_SIZE >= msg.size)
@@ -125,11 +129,10 @@ class KServer () : Loggable
                socket?.send( pkt )
 
                /* Updating stats. */
-               Stats.sentData( msg.size.toLong() )
-
-               /* Monitoring find node sent. */
-               if (message is KFindNodeMessage && nodeMessageListener !is NoNodeMessageListener)
-                  nodeMessageListener.findMessageSent()
+               stats.packetsSent++
+               stats.bytesSent += msg.size
+               if (message is KFindNodeMessage)
+                  stats.findNodeSent++
             }
          })})
       }
@@ -159,7 +162,9 @@ class KServer () : Loggable
             val packet = DatagramPacket( buffer, buffer.size )
 
             socket?.receive( packet )
-            Stats.receivedData( packet.getLength().toLong() )                   // Update stats
+
+            stats.bytesReceived += packet.getLength()
+            stats.packetsReceived++
 
             if (Constants.IS_TESTING)
             {
@@ -174,12 +179,11 @@ class KServer () : Loggable
             ByteArrayInputStream( packet.getData(), packet.getOffset(), packet.getLength() ).use( { bais -> DataInputStream( bais ).use(
             {
                val conversationID : Int = it.readInt()
-               val messageCode : Byte = bais.read().toByte()
-               val message = MessageFactory.createMessage( messageCode, bais )
+               val message = MessageSerializer.readMessage( bais )
 
                /* Monitoring find node reply received. */
-               if (message is KFindNodeReply && nodeMessageListener !is NoNodeMessageListener)
-                  nodeMessageListener.findReplyReceived()
+               if (message is KFindNodeReply)
+                  stats.findReplyReceived++
 
                /* Getting a receiver for this message. */
                var rec : Receiver? = null
@@ -196,8 +200,7 @@ class KServer () : Loggable
                else
                {
                   /* There is currently no receivers, try to get one. */
-                  checkNotNull( localNode )
-                  rec = ReceiverFactory.createReceiver( messageCode, localNode!! )
+                  rec = receiverFactory.createReceiver( message )
                }
 
                rec?.receive( message, conversationID )
@@ -239,7 +242,7 @@ class KServer () : Loggable
          println( "Receiver ($r): ${receivers[r]}" )
    }
 
-   override fun originName () = "KServer" + localNode?.getNode()
+   override fun tag () = "KServer"
 
    /** Task that gets called by a separate thread if a timeout for a receiver occurs.
      * When a reply arrives this task must be canceled using the `cancel()`

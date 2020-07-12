@@ -23,7 +23,8 @@ class KFindValueReceiver (private val server : KServer, private val node : KNode
       if (message is KFindValueMessage)
       {
          log({"message received"}, Config.trigger( "KAD_CONTENT_FIND" ))
-         log({"content info: {owner: ${message.params.ownerName}}, {type: ${message.params.type}}, {key: \"${message.params.key}\"}"}, Config.trigger( "KAD_CONTENT_INFO" ))
+//         log({"content info: {owner: ${message.params.ownerName}}, {type: ${message.params.type}}, {nodeId: \"${message.params.nodeId}\"}"}, Config.trigger( "KAD_CONTENT_INFO" ))
+
          kRoutingTable.insert( message.origin )
 
          /* Check if we can have this data */
@@ -46,11 +47,11 @@ class KFindValueReceiver (private val server : KServer, private val node : KNode
          {
             /* Return a the K closest nodes to this content identifier
              * We create a KFindNodeReceiver and let this receiver handle this operation */
-            val lkpMsg = KFindNodeMessage( message.origin, message.params.key )
+            val lkpMsg = KFindNodeMessage( message.origin, message.params.nodeId )
             KFindNodeReceiver( server, node, kRoutingTable ).receive( lkpMsg, conversationId )
          }
       }
    }
 
-   override fun originName () = "KFindValueReceiver(${node})"
+   override fun tag () = "KFindValueReceiver(${node})"
 }

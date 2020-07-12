@@ -4,14 +4,15 @@ import kotlinx.coroutines.*
 import java.io.IOException
 import java.util.ArrayList
 import java.util.TreeMap
+import pen.Config
 import pen.Loggable
+import pen.LogLevel.WARN
 import kad.Constants
 import kad.KServer
 import kad.KKademliaNode
 import kad.RoutingException
 import kad.messages.Message
 import kad.messages.receivers.Receiver
-import kad.messages.Codes
 import kad.messages.KFindNodeMessage
 import kad.messages.KFindNodeReply
 import kad.node.KKeyComparator
@@ -21,14 +22,12 @@ import kad.routing.KRoutingTable
 
 /** Finds the K closest nodes to a specified identifier
   * The algorithm terminates when it has gotten responses from the K closest nodes it has seen.
-  * Nodes that fail to respond are removed from consideration */
-class KFindNodeOperation
-/** @param server Server used for communication
+  * Nodes that fail to respond are removed from consideration
+  * @param server Server used for communication
   * @param kadNode The local node making the communication
   * @param lookupId  The ID for which to find nodes close to */
-(private val server : KServer, private val node : KNode, private val routingTable : KRoutingTable, private val lookupId : KNodeId) : Operation, Receiver, Loggable
+class KFindNodeOperation (private val server : KServer, private val node : KNode, private val routingTable : KRoutingTable, private val lookupId : KNodeId) : Operation, Receiver, Loggable
 {
-   /* Constants */
    private val UNASKED  = "UNASKED"
    private val AWAITING = "AWAITING"
    private val ASKED    = "ASKED"
@@ -71,32 +70,62 @@ class KFindNodeOperation
       routingTable.setUnresponsiveContacts( getFailedNodes() )
    }
 
-   fun getClosestNodes () = closestNodes( ASKED )
-   fun getFailedNodes () : ArrayList<KNode>
+   /** Receive and handle the incoming KFindNodeReply */
+   @Synchronized
+   override fun receive (message : Message, conversationId : Int)
    {
-      val failedNodes = ArrayList<KNode>()
+      /* We have received a KFindNodeReply with a set of nodes, read this message */
+      if (message is KFindNodeReply)
+      {
+         /* Add the origin node to our routing table */
+         routingTable.insert( message.origin )
 
-      for (e in nodes.entries)
-         if (e.value.equals( FAILED ))
-            failedNodes.add(e.key)
+         /* Set that we've completed ASKing the origin node */
+         nodes.put( message.origin, ASKED )
 
-      return failedNodes
+         /* Remove this msg from messagesTransiting since it's completed now */
+         messagesTransiting.remove( conversationId )
+
+         /* Add the received nodes to our nodes list to query */
+         addNodes( message.nodes )
+         askNodesorFinish()
+      }
+      else
+         log("A non KFindNodeReply message received", Config.trigger( "KAD_CONTACT_FIND" ), WARN)  // Not sure why we get a message of a different type here... @todo Figure it out..
    }
 
-   /** Add nodes from this list to the set of nodes to lookup
-     * @param list The list from which to add nodes */
-   fun addNodes (list : List<KNode>)
+   /** A node does not respond or a packet was lost, we set this node as failed */
+   @Synchronized
+   override fun timeout (conversationId : Int)
    {
-      for (o in list)
+      /* Get the node associated with this communication */
+      val node = messagesTransiting[conversationId] ?: return
+
+      /* Mark this node as failed and inform the routing table that it is unresponsive */
+      nodes.put( node, FAILED )
+      routingTable.setUnresponsiveContact( node )
+      messagesTransiting.remove( conversationId )
+
+      askNodesorFinish()
+   }
+
+   fun getClosestNodes () = closestNodes( ASKED )
+
+   override fun tag () = "KFindNodeOperation(${node})"
+
+   /** Add nodes from this list to the set of nodes to lookup
+     * @param nodes The list from which to add nodes */
+   private fun addNodes (nodesToLookUp : List<KNode>)
+   {
+      for (node in nodesToLookUp)
       {
-         if (!nodes.containsKey( o ))
-            nodes.put( o, UNASKED )
+         if (!nodes.containsKey( node ))
+            nodes.put( node, UNASKED )
       }
    }
 
    /** Asks some of the K closest nodes seen but not yet queried.
      * Assures that no more than DefaultConfig.CONCURRENCY messages are in transit at a time
-     *
      * This method should be called every time a reply is received or a timeout occurs.
      * If all K closest nodes have been asked and there are no messages in transit,
      * the algorithm is finished.
@@ -111,24 +140,22 @@ class KFindNodeOperation
       val unasked = closestNodesNotFailed( UNASKED )
 
       if (unasked.isEmpty() && messagesTransiting.isEmpty())
-         /* We have no unasked nodes nor any messages in transit, we're finished! */
-         return true
+         return true                                                             // We have no unasked nodes nor any messages in transit, we're finished!
 
       /* Send messages to nodes in the list
        * making sure than no more than CONCURRENCY messsages are in transit */
       var i = 0
       while (messagesTransiting.size < Constants.MAX_CONCURRENT_MESSAGES_TRANSITING && i < unasked.size)
       {
-         val n = unasked[i]
-         val comm = server.sendMessage(n, lookupMessage, this)
+         val node = unasked[i]
+         val conversationId = server.sendMessage( node, lookupMessage, this )
 
-         nodes.put( n, AWAITING )
-         messagesTransiting.put( comm, n )
+         nodes.put( node, AWAITING )
+         messagesTransiting.put( conversationId, node )
          i++
       }
 
-      /* We're not finished as yet, return false */
-      return false
+      return false                                                              // We're not finished as yet, return false
    }
 
    /** @param status The status of the nodes to return
@@ -138,16 +165,27 @@ class KFindNodeOperation
       val closestNodes = ArrayList<KNode>( Constants.K )
       var remainingSpaces = Constants.K
 
-      for (e in nodes.entries)
-         if (status.equals( e.value ))
+      for (entry in nodes.entries)
+         if (status.equals( entry.value ))
          {
             /* We got one with the required status, now add it */
-            closestNodes.add( e.key )
+            closestNodes.add( entry.key )
             if (--remainingSpaces == 0)
                break
          }
 
       return closestNodes
+   }
+
+   private fun getFailedNodes () : ArrayList<KNode>
+   {
+      val failedNodes = ArrayList<KNode>()
+
+      for (entry in nodes.entries)
+         if (entry.value.equals( FAILED ))
+            failedNodes.add(entry.key)
+
+      return failedNodes
    }
 
    /** Find The K closest nodes to the target lookupId given that have not FAILED.
@@ -159,12 +197,12 @@ class KFindNodeOperation
       val closestNodes = ArrayList<KNode>( Constants.K )
       var remainingSpaces = Constants.K
 
-      for (e in nodes.entries)
-         if (!FAILED.equals( e.value ))
+      for (entry in nodes.entries)
+         if (!FAILED.equals( entry.value ))
          {
-            if (status.equals( e.value ))
+            if (status.equals( entry.value ))
                /* We got one with the required status, now add it */
-               closestNodes.add( e.key )
+               closestNodes.add( entry.key )
 
             if (--remainingSpaces == 0)
                break
@@ -172,46 +210,4 @@ class KFindNodeOperation
 
       return closestNodes
    }
-
-   /** Receive and handle the incoming KFindNodeReply */
-   @Synchronized
-   override fun receive (message : Message, conversationId : Int)
-   {
-      if (message !is KFindNodeReply) // Not sure why we get a message of a different type here... @todo Figure it out..
-         return
-
-      /* We receive a KFindNodeReply with a set of nodes, read this message */
-      val msg = message
-
-      /* Add the origin node to our routing table */
-      val origin = msg.origin
-      routingTable.insert( origin )
-
-      /* Set that we've completed ASKing the origin node */
-      nodes.put( origin, ASKED )
-
-      /* Remove this msg from messagesTransiting since it's completed now */
-      messagesTransiting.remove( conversationId )
-
-      /* Add the received nodes to our nodes list to query */
-      addNodes( msg.nodes )
-      askNodesorFinish()
-   }
-
-   /** A node does not respond or a packet was lost, we set this node as failed */
-   @Synchronized
-   override fun timeout (conversationId : Int)
-   {
-      /* Get the node associated with this communication */
-      val n = messagesTransiting[conversationId] ?: return
-
-      /* Mark this node as failed and inform the routing table that it is unresponsive */
-      nodes.put( n, FAILED )
-      routingTable.setUnresponsiveContact( n )
-      messagesTransiting.remove( conversationId )
-
-      askNodesorFinish()
-   }
-
-   override fun originName () = "KFindNodeOperation(${node})"
 }
